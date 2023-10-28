@@ -171,10 +171,9 @@ fn update_nodes_system(mut grid: ResMut<Grid>, time: Res<Time>) {
         }
 
         let node = grid.0[i].clone();
-        grid.0[i].next = node.calc(left, right, top, bottom);
         match node.node_type {
             NodeType::Source => sin_source(time.elapsed_seconds_f64(), &mut grid),
-            _ => {},
+            _ => grid.0[i].next = node.calc(left, right, top, bottom),
         }
     });
 
@@ -188,5 +187,3 @@ fn sin_source(t: f64, grid: &mut ResMut<Grid>) {
     let sin = (PI * 2. * t).cos() * 4.;
     source.current = vector![sin, sin, sin, sin];
 }
-
-// ACHTUNG BAUSTELLE !!!!
