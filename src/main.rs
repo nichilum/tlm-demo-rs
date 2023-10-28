@@ -51,10 +51,10 @@ impl Node {
         match (left, right, top, bottom) {
             (Some(left), Some(right), Some(top), Some(bottom)) => {
                 let v = vector![
-                    bottom.current.x,
-                    left.current.y,
-                    top.current.z,
-                    right.current.w,
+                    bottom.current.z,
+                    left.current.w,
+                    top.current.x,
+                    right.current.y,
                 ];
 
                 SCATTERING_MATRIX * v
@@ -106,17 +106,17 @@ fn main() {
         Node::default();
         (SIMULATION_WIDTH * SIMULATION_HEIGHT) as usize
     ]);
-    // grid.set(
-    //     SIMULATION_WIDTH / 2,
-    //     SIMULATION_HEIGHT / 2,
-    //     Node {
-    //         node_type: NodeType::Source,
-    //         ..Default::default()
-    //     },
-    // );
+    grid.set(
+        SIMULATION_WIDTH / 2,
+        SIMULATION_HEIGHT / 2,
+        Node {
+            node_type: NodeType::Source,
+            ..Default::default()
+        },
+    );
 
-    let source = grid.get_mut(SIMULATION_WIDTH / 2, SIMULATION_HEIGHT / 2);
-    source.current = vector![1., 0., 0., 0.];
+    // let source = grid.get_mut(SIMULATION_WIDTH / 2, SIMULATION_HEIGHT / 2);
+    // source.current = vector![1., 0., 0., 0.];
 
     let gradient = GradientResource(colorgrad::magma());
 
@@ -166,10 +166,6 @@ fn update_nodes_system(mut grid: ResMut<Grid>, time: Res<Time>) {
         let top = grid.get(x, y - 1);
         let bottom = grid.get(x, y + 1);
 
-        if x as u32 == SIMULATION_WIDTH / 2 && y as u32 == (SIMULATION_HEIGHT / 2) - 1 {
-            info!("{:?}", grid.0[i])
-        }
-
         let node = grid.0[i].clone();
         match node.node_type {
             NodeType::Source => sin_source(time.elapsed_seconds_f64(), &mut grid),
@@ -184,6 +180,6 @@ fn update_nodes_system(mut grid: ResMut<Grid>, time: Res<Time>) {
 
 fn sin_source(t: f64, grid: &mut ResMut<Grid>) {
     let source = grid.get_mut(SIMULATION_WIDTH / 2, SIMULATION_HEIGHT / 2);
-    let sin = (PI * 2. * t).cos() * 4.;
+    let sin = (10. * t).sin();
     source.current = vector![sin, sin, sin, sin];
 }
