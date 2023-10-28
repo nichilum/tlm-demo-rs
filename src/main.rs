@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 
 use bevy::prelude::*;
-use bevy_pixel_buffer::prelude::*;
+use bevy_pixels::prelude::*;
 use rayon::{array, prelude::*};
 
 const SIMULATION_WIDTH: u32 = 500;
@@ -10,11 +10,6 @@ const PIXEL_SIZE: u32 = 2;
 const NUM_INDEX: u32 = 9; //cur_bottom cur_left cur_top cur_right next_bottom next_left next_top next_right pressure
 
 fn main() {
-    let size: PixelBufferSize = PixelBufferSize {
-        size: UVec2::new(SIMULATION_WIDTH, SIMULATION_HEIGHT),
-        pixel_size: UVec2::new(PIXEL_SIZE, PIXEL_SIZE),
-    };
-
     let mut grid = GridFloat(
         vec![0.; (SIMULATION_WIDTH * SIMULATION_HEIGHT * NUM_INDEX) as usize],
         vec![
@@ -46,12 +41,12 @@ fn main() {
     let gradient = GradientResource(colorgrad::blues());
 
     App::new()
-        .add_plugins((DefaultPlugins, PixelBufferPlugin))
+        .add_plugins((DefaultPlugins, PixelsPlugin::default()))
         .insert_resource(grid)
         .insert_resource(gradient)
-        .add_systems(Startup, pixel_buffer_setup(size))
         .add_systems(Update, bevy::window::close_on_esc)
-        .add_systems(Update, (full_grid_update, draw_pixels))
+        // .add_systems(Update, (full_grid_update, draw_pixels))
+        .add_systems(Draw, draw_pixels)
         .run();
 }
 
@@ -149,35 +144,45 @@ fn full_grid_update(mut grid: ResMut<GridFloat>, time: Res<Time>) -> () {
     grid.update_grid();
 }
 
-fn draw_pixels(mut pb: QueryPixelBuffer, grid: Res<GridFloat>, gradient: Res<GradientResource>) {
-    let mut frame = pb.frame();
-    frame.per_pixel_par(|coords, _| {
-        let p = grid.0[array_pos(coords.x, coords.y, 8) as usize];
-        let color = gradient.0.at((p + 0.5) as f64);
-        // Pixel {
-        //     r: (p * 255.) as u8,
-        //     g: (p * 255.) as u8,
-        //     b: (p * 255.) as u8,
-        //     a: 255,
-        // }
-        Pixel {
-            r: (color.r * 255.) as u8,
-            g: (color.g * 255.) as u8,
-            b: (color.b * 255.) as u8,
-            a: 255,
-        }
-    });
+fn draw_pixels(
+    mut wrapper_query: Query<&mut PixelsWrapper>,
+    grid: Res<GridFloat>,
+    gradient: Res<GradientResource>,
+) {
+    // let mut frame = pb.frame();
+    // frame.per_pixel_par(|coords, _| {
+    //     let p = grid.0[array_pos(coords.x, coords.y, 8) as usize];
+    //     let color = gradient.0.at((p + 0.5) as f64);
+    //     // Pixel {
+    //     //     r: (p * 255.) as u8,
+    //     //     g: (p * 255.) as u8,
+    //     //     b: (p * 255.) as u8,
+    //     //     a: 255,
+    //     // }
+    //     Pixel {
+    //         r: (color.r * 255.) as u8,
+    //         g: (color.g * 255.) as u8,
+    //         b: (color.b * 255.) as u8,
+    //         a: 255,
+    //     }
+    // });
 
-    for &i in grid.2.iter() {
-        let (x, y) = array_pos_rev(i as u32);
-        let _ = frame.set(
-            UVec2::new(x, y),
-            Pixel {
-                r: (0) as u8,
-                g: (0) as u8,
-                b: (0) as u8,
-                a: 255,
-            },
-        );
-    }
+    // for &i in grid.2.iter() {
+    //     let (x, y) = array_pos_rev(i as u32);
+    //     let _ = frame.set(
+    //         UVec2::new(x, y),
+    //         Pixel {
+    //             r: (0) as u8,
+    //             g: (0) as u8,
+    //             b: (0) as u8,
+    //             a: 255,
+    //         },
+    //     );
+    // }
+    let Ok(mut wrapper) = wrapper_query.get_single_mut() else {
+        return;
+    };
+    let frame = wrapper.pixels.frame_mut();
+
+    frame.copy_from_slice(&[0x48, 0xb2, 0xe8, 0xff].repeat(frame.len() / 4));
 }
