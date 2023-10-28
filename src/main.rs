@@ -34,8 +34,8 @@ impl Node {
         self.current = self.next;
     }
 
-    fn set_current(&mut self, current: Vector4<f64>) {
-        self.current = current;
+    fn set_next(&mut self, next: Vector4<f64>) {
+        self.next = next;
     }
 
     fn calc(
@@ -94,25 +94,25 @@ fn main() {
         (SIMULATION_WIDTH * SIMULATION_HEIGHT) as usize
     ]);
 
-    // for x in 0..SIMULATION_WIDTH {
-    //     grid.set(
-    //         x,
-    //         SIMULATION_HEIGHT / 2,
-    //         Node {
-    //             node_type: NodeType::Source,
-    //             ..Default::default()
-    //         },
-    //     );
-    // }
+    for x in 0..SIMULATION_WIDTH {
+        grid.set(
+            x,
+            SIMULATION_HEIGHT / 2,
+            Node {
+                node_type: NodeType::Source,
+                ..Default::default()
+            },
+        );
+    }
 
-    grid.set(
-        SIMULATION_WIDTH / 2,
-        SIMULATION_HEIGHT / 2,
-        Node {
-            node_type: NodeType::Source,
-            ..Default::default()
-        },
-    );
+    // grid.set(
+    //     SIMULATION_WIDTH / 2,
+    //     SIMULATION_HEIGHT / 2,
+    //     Node {
+    //         node_type: NodeType::Source,
+    //         ..Default::default()
+    //     },
+    // );
 
     // let source = grid.get_mut(SIMULATION_WIDTH / 2, SIMULATION_HEIGHT / 2);
     // source.current = vector![1., 1., 1., 1.];
@@ -179,5 +179,5 @@ fn update_nodes_system(mut grid: ResMut<Grid>, time: Res<Time>) {
 fn sin_source(t: f64, x: u32, y: u32, grid: &mut ResMut<Grid>) {
     let source = grid.get_mut(x, y);
     let sin = (10. * t).sin();
-    source.set_current(vector![sin, sin, sin, sin]);
+    source.set_next(vector![sin, sin, sin, sin]);
 }
