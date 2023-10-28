@@ -1,4 +1,7 @@
-use bevy::prelude::*;
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+};
 use bevy_pixel_buffer::prelude::*;
 use na::{vector, Vector4};
 use rayon::prelude::*;
@@ -120,7 +123,12 @@ fn main() {
     let gradient = GradientResource(colorgrad::magma());
 
     App::new()
-        .add_plugins((DefaultPlugins, PixelBufferPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            PixelBufferPlugin,
+            LogDiagnosticsPlugin::default(),
+            FrameTimeDiagnosticsPlugin,
+        ))
         .insert_resource(grid)
         .insert_resource(gradient)
         .add_systems(Startup, pixel_buffer_setup(size))
