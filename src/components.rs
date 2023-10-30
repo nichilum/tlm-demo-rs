@@ -2,7 +2,10 @@ use std::f32::consts::PI;
 
 use bevy::prelude::*;
 
-use crate::{grid::Grid, constants::{SIMULATION_WIDTH, SIMULATION_HEIGHT}};
+use crate::{
+    constants::{SIMULATION_HEIGHT, SIMULATION_WIDTH},
+    grid::Grid,
+};
 
 #[derive(Resource)]
 pub struct GradientResource(pub colorgrad::Gradient);
@@ -29,8 +32,10 @@ pub struct Drag;
 #[derive(Debug, Default, Component)]
 /// A sound source on the grid
 pub struct Source {
-    /// index of the cell in the grid
-    pub index: usize,
+    /// x position in grid
+    pub x: usize,
+    /// y position in grid
+    pub y: usize,
     /// phase shift of the function (currently in seconds)
     pub phase: f32,
     /// frequency of the function (in Hz)
@@ -50,14 +55,16 @@ pub enum SourceType {
 
 impl Source {
     pub fn new(
-        index: usize,
+        x: usize,
+        y: usize,
         amplitude: f32,
         phase: f32,
         frequency: f32,
         r#type: SourceType,
     ) -> Self {
         Self {
-            index,
+            x,
+            y,
             phase,
             frequency,
             amplitude,
@@ -79,16 +86,10 @@ impl Source {
 
     pub fn spawn_initial_sources(mut commands: Commands) {
         commands.spawn(Source::new(
-            Grid::coords_to_index(SIMULATION_WIDTH / 2, SIMULATION_HEIGHT / 2, 0),
+            SIMULATION_WIDTH / 2,
+            SIMULATION_WIDTH / 2,
             10.,
             0.0,
-            1.0,
-            SourceType::Sin,
-        ));
-        commands.spawn(Source::new(
-            Grid::coords_to_index(SIMULATION_WIDTH / 4, SIMULATION_HEIGHT / 4, 0),
-            10.,
-            1.0,
             1.0,
             SourceType::Sin,
         ));
@@ -97,4 +98,9 @@ impl Source {
 
 #[derive(Debug, Component)]
 /// A wall component containing the index of the corresponding cell in the grid
-pub struct Wall(pub usize);
+pub struct Wall {
+    /// x position in grid
+    pub x: usize,
+    /// x position in grid
+    pub y: usize,
+}

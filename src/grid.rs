@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 
+use array2d::{Array2D, Error};
 use bevy::prelude::*;
 use smallvec::SmallVec;
 
@@ -9,7 +10,15 @@ use crate::constants::*;
 #[derive(Debug, Resource)]
 pub struct Grid {
     /// full grid: [cur_bottom, cur_left, cur_top, cur_right, next_bottom, next_left, next_top, next_right, pressure]
-    pub cells: Vec<f32>,
+    pub cur_bottom: Array2D<f32>,
+    pub cur_left: Array2D<f32>,
+    pub cur_top: Array2D<f32>,
+    pub cur_right: Array2D<f32>,
+    pub next_bottom: Array2D<f32>,
+    pub next_left: Array2D<f32>,
+    pub next_top: Array2D<f32>,
+    pub next_right: Array2D<f32>,
+    pub pressure: Array2D<f32>,
     /// A list of boundary nodes
     pub boundaries: Boundary,
 }
@@ -17,19 +26,27 @@ pub struct Grid {
 #[derive(Debug, Default)]
 pub struct Boundary {
     /// indecies of bottom boundary nodes
-    bottom: SmallVec<[usize; SIMULATION_WIDTH as usize]>,
+    bottom: SmallVec<[usize; SIMULATION_WIDTH]>,
     /// indecies of left boundary nodes
-    left: SmallVec<[usize; SIMULATION_HEIGHT as usize]>,
+    left: SmallVec<[usize; SIMULATION_HEIGHT]>,
     /// indecies of top boundary nodes
-    top: SmallVec<[usize; SIMULATION_WIDTH as usize]>,
+    top: SmallVec<[usize; SIMULATION_WIDTH]>,
     /// indecies of right boundary nodes
-    right: SmallVec<[usize; SIMULATION_HEIGHT as usize]>,
+    right: SmallVec<[usize; SIMULATION_HEIGHT]>,
 }
 
 impl Default for Grid {
     fn default() -> Self {
         let mut grid = Self {
-            cells: vec![0.; (SIMULATION_WIDTH * SIMULATION_HEIGHT * NUM_INDEX) as usize],
+            cur_bottom: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            cur_left: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            cur_top: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            cur_right: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            next_bottom: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            next_left: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            next_top: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            next_right: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
+            pressure: Array2D::filled_with(0. as f32, SIMULATION_HEIGHT, SIMULATION_WIDTH),
             boundaries: Default::default(),
         };
         grid.init_boundaries();
@@ -38,50 +55,48 @@ impl Default for Grid {
 }
 
 impl Grid {
+    /// moves next into current positions and calculates pressure
     fn update(&mut self) {
-        for i in 0..SIMULATION_WIDTH * SIMULATION_HEIGHT {
-            let array_pos: usize = (i * NUM_INDEX) as usize;
+        for x in 0..SIMULATION_WIDTH {
+            for y in 0..SIMULATION_HEIGHT {
+                self.cur_bottom[(x, y)] = self.next_bottom[(x, y)];
+                self.cur_left[(x, y)] = self.next_left[(x, y)];
+                self.cur_top[(x, y)] = self.next_top[(x, y)];
+                self.cur_right[(x, y)] = self.next_right[(x, y)];
 
-            self.cells[array_pos] = self.cells[array_pos + 4];
-            self.cells[array_pos + 1] = self.cells[array_pos + 5];
-            self.cells[array_pos + 2] = self.cells[array_pos + 6];
-            self.cells[array_pos + 3] = self.cells[array_pos + 7];
-
-            //calculate pressure
-            self.cells[array_pos + 8] = 0.5
-                * (self.cells[array_pos]
-                    + self.cells[array_pos + 1]
-                    + self.cells[array_pos + 2]
-                    + self.cells[array_pos + 3]);
+                self.pressure[(x, y)] = 0.5
+                    * (self.cur_bottom[(x, y)]
+                        + self.cur_left[(x, y)]
+                        + self.cur_top[(x, y)]
+                        + self.cur_right[(x, y)]);
+            }
         }
     }
 
     fn calc(&mut self) {
         for x in 1..SIMULATION_WIDTH - 1 {
             for y in 1..SIMULATION_HEIGHT - 1 {
-                self.calc_cell(
-                    Grid::coords_to_index(x, y, 0),
-                    self.cells[Grid::coords_to_index(x, y + 1, 2)],
-                    self.cells[Grid::coords_to_index(x - 1, y, 3)],
-                    self.cells[Grid::coords_to_index(x, y - 1, 0)],
-                    self.cells[Grid::coords_to_index(x + 1, y, 1)],
-                );
+                self.calc_cell(x, y);
             }
         }
     }
 
-    fn calc_cell(
-        &mut self,
-        coord_one_d: usize,
-        bottom_top: f32,
-        left_right: f32,
-        top_bottom: f32,
-        right_left: f32,
-    ) {
-        self.cells[coord_one_d + 4] = 0.5 * (-bottom_top + left_right + top_bottom + right_left);
-        self.cells[coord_one_d + 5] = 0.5 * (bottom_top - left_right + top_bottom + right_left);
-        self.cells[coord_one_d + 6] = 0.5 * (bottom_top + left_right - top_bottom + right_left);
-        self.cells[coord_one_d + 7] = 0.5 * (bottom_top + left_right + top_bottom - right_left);
+    fn calc_cell(&mut self, x: usize, y: usize) {
+        self.next_bottom[(x, y)] = 0.5
+            * (-self.cur_top[(x, y + 1)]
+                + self.cur_right[(x - 1, y)]
+                + self.cur_bottom[(x, y - 1)]
+                + self.cur_left[(x + 1, y)]);
+        self.next_left[(x, y)] = 0.5
+            * (self.cur_top[(x, y + 1)] - self.cur_right[(x - 1, y)]
+                + self.cur_bottom[(x, y - 1)]
+                + self.cur_left[(x + 1, y)]);
+        self.next_top[(x, y)] = 0.5
+            * (self.cur_top[(x, y + 1)] + self.cur_right[(x - 1, y)] - self.cur_bottom[(x, y - 1)]
+                + self.cur_left[(x + 1, y)]);
+        self.next_right[(x, y)] = 0.5
+            * (self.cur_top[(x, y + 1)] + self.cur_right[(x - 1, y)] + self.cur_bottom[(x, y - 1)]
+                - self.cur_left[(x + 1, y)]);
     }
 
     fn apply_sources(&mut self, time: f32, sources: &Query<&Source>) {
@@ -96,76 +111,45 @@ impl Grid {
                 }
             };
 
-            self.cells[source.index + 4] = calc;
-            self.cells[source.index + 5] = calc;
-            self.cells[source.index + 6] = calc;
-            self.cells[source.index + 7] = calc;
+            self.next_bottom[(source.x, source.y)] = calc;
+            self.next_left[(source.x, source.y)] = calc;
+            self.next_top[(source.x, source.y)] = calc;
+            self.next_right[(source.x, source.y)] = calc;
         }
     }
 
     fn apply_walls(&mut self, walls: &Query<&Wall>) {
         for wall in walls.iter() {
-            let (x, y) = Grid::index_to_coords(wall.0 as u32);
-            self.cells[wall.0 + 4] = WALL_FAC * self.cells[Grid::coords_to_index(x, y + 1, 2)];
-            self.cells[wall.0 + 5] = WALL_FAC * self.cells[Grid::coords_to_index(x - 1, y, 3)];
-            self.cells[wall.0 + 6] = WALL_FAC * self.cells[Grid::coords_to_index(x, y - 1, 0)];
-            self.cells[wall.0 + 7] = WALL_FAC * self.cells[Grid::coords_to_index(x + 1, y, 1)];
+            self.next_bottom[(wall.x, wall.y)] = WALL_FAC * self.cur_top[(wall.x, wall.y + 1)];
+            self.next_left[(wall.x, wall.y)] = WALL_FAC * self.cur_right[(wall.x - 1, wall.y)];
+            self.next_top[(wall.x, wall.y)] = WALL_FAC * self.cur_bottom[(wall.x, wall.y - 1)];
+            self.next_right[(wall.x, wall.y)] = WALL_FAC * self.cur_left[(wall.x + 1, wall.y)];
         }
     }
 
-    fn apply_boundaries(&mut self) {
-        //pls math check
-        for &boundary_index in self.boundaries.bottom.iter() {
-            self.cells[boundary_index + 6] =
-                BOUNDARY_FAC * self.cells[boundary_index - (NUM_INDEX * SIMULATION_WIDTH) as usize];
-        }
-        for &boundary_index in self.boundaries.left.iter() {
-            self.cells[boundary_index + 7] =
-                BOUNDARY_FAC * self.cells[boundary_index + NUM_INDEX as usize + 1];
-        }
-        for &boundary_index in self.boundaries.top.iter() {
-            self.cells[boundary_index + 4] = BOUNDARY_FAC
-                * self.cells[boundary_index + (NUM_INDEX * SIMULATION_WIDTH) as usize + 2];
-        }
-        for &boundary_index in self.boundaries.right.iter() {
-            self.cells[boundary_index + 5] =
-                BOUNDARY_FAC * self.cells[boundary_index - NUM_INDEX as usize + 3];
-        }
-    }
+    fn apply_boundaries(&mut self) {}
 
     pub fn init_boundaries(&mut self) {
         // TOP
         for x in 0..SIMULATION_WIDTH {
-            self.boundaries.top.push(Grid::coords_to_index(x, 0, 0))
+            // self.boundaries.top.push(Grid::coords_to_index(x, 0))
         }
         // BOTTOM
         for x in 0..SIMULATION_WIDTH {
-            self.boundaries
-                .bottom
-                .push(Grid::coords_to_index(x, SIMULATION_HEIGHT - 1, 0))
+            // self.boundaries
+            //     .bottom
+            //     .push(Grid::coords_to_index(x, SIMULATION_HEIGHT - 1))
         }
         // LEFT
         for y in 0..SIMULATION_HEIGHT {
-            self.boundaries.left.push(Grid::coords_to_index(0, y, 0))
+            // self.boundaries.left.push(Grid::coords_to_index(0, y))
         }
         // RIGHT
         for y in 0..SIMULATION_HEIGHT {
-            self.boundaries
-                .right
-                .push(Grid::coords_to_index(SIMULATION_WIDTH - 1, y, 0))
+            // self.boundaries
+            //     .right
+            //     .push(Grid::coords_to_index(SIMULATION_WIDTH - 1, y))
         }
-    }
-
-    /// Calculates 1D array index from x,y coordinates (and an offset `index`) 
-    pub fn coords_to_index(x: u32, y: u32, index: u32) -> usize {
-        (y * SIMULATION_WIDTH * NUM_INDEX + x * NUM_INDEX + index) as usize
-    }
-
-    /// Calculates x,y coordinates from 1D array index
-    pub fn index_to_coords(i: u32) -> (u32, u32) {
-        let x = (i / 9) % SIMULATION_WIDTH;
-        let y = i / 9 / SIMULATION_WIDTH;
-        (x, y)
     }
 }
 

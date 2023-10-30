@@ -2,13 +2,12 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::components::{Drag, Source, Wall};
 use crate::constants::*;
-use crate::grid::Grid;
 
 fn screen_to_grid(x: f32, y: f32, screen_width: f32, screen_height: f32) -> Option<(u32, u32)> {
-    let x = (x - (screen_width - (SIMULATION_WIDTH / PIXEL_SIZE) as f32) / 2.) as u32;
-    let y = (y - (screen_height - (SIMULATION_HEIGHT / PIXEL_SIZE) as f32) / 2.) as u32;
+    let x = (x - (screen_width - (SIMULATION_WIDTH as u32 / PIXEL_SIZE) as f32) / 2.) as u32;
+    let y = (y - (screen_height - (SIMULATION_HEIGHT as u32 / PIXEL_SIZE) as f32) / 2.) as u32;
 
-    if x >= SIMULATION_WIDTH || y >= SIMULATION_HEIGHT {
+    if x >= SIMULATION_WIDTH as u32 || y >= SIMULATION_HEIGHT as u32 {
         return None;
     }
 
@@ -28,16 +27,8 @@ pub fn mouse_button_input(
             if let Some((x, y)) =
                 screen_to_grid(position.x, position.y, window.width(), window.height())
             {
-                // grid.sources.push(Source::new(
-                //     array_pos(x, y, 0),
-                //     10.,
-                //     0.0,
-                //     1.0,
-                //     SourceType::Sin,
-                // ));
                 for (entity, source) in sources.iter() {
-                    let (s_x, s_y) = Grid::index_to_coords(source.index as u32);
-                    if s_x.abs_diff(x) <= 10 && s_y.abs_diff(y) <= 10 {
+                    if source.x.abs_diff(x as usize) <= 10 && source.y.abs_diff(y as usize) <= 10 {
                         commands.entity(entity).insert(Drag);
                     }
                 }
@@ -56,7 +47,8 @@ pub fn mouse_button_input(
                 screen_to_grid(position.x, position.y, window.width(), window.height())
             {
                 drag_sources.iter_mut().for_each(|(_, mut source)| {
-                    source.index = Grid::coords_to_index(x, y, 0);
+                    source.x = x as usize;
+                    source.y = y as usize;
                 });
             }
         }
@@ -69,20 +61,45 @@ pub fn mouse_button_input(
             {
                 //TODO: because of the brush size, the indices may be out of bounds
                 //TODO: make bush size variable
-                commands.spawn(Wall(Grid::coords_to_index(x, y, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x + 1, y, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x - 1, y, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x, y + 1, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x + 1, y + 1, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x, y - 1, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x - 1, y - 1, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x + 1, y - 1, 0)));
-                commands.spawn(Wall(Grid::coords_to_index(x - 1, y + 1, 0)));
+                commands.spawn(Wall {
+                    x: x as usize,
+                    y: y as usize,
+                });
+                commands.spawn(Wall {
+                    x: x as usize + 1,
+                    y: y as usize,
+                });
+                commands.spawn(Wall {
+                    x: x as usize - 1,
+                    y: y as usize,
+                });
+                commands.spawn(Wall {
+                    x: x as usize,
+                    y: y as usize + 1,
+                });
+                commands.spawn(Wall {
+                    x: x as usize + 1,
+                    y: y as usize + 1,
+                });
+                commands.spawn(Wall {
+                    x: x as usize,
+                    y: y as usize - 1,
+                });
+                commands.spawn(Wall {
+                    x: x as usize - 1,
+                    y: y as usize - 1,
+                });
+                commands.spawn(Wall {
+                    x: x as usize + 1,
+                    y: y as usize - 1,
+                });
+                commands.spawn(Wall {
+                    x: x as usize - 1,
+                    y: y as usize + 1,
+                });
             }
         }
     }
-    // we can check multiple at once with `.any_*`
-    if buttons.any_just_pressed([MouseButton::Left, MouseButton::Right]) {
-        // Either the left or the right button was just pressed
-    }
+
+    if buttons.any_just_pressed([MouseButton::Left, MouseButton::Right]) {}
 }

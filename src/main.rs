@@ -8,7 +8,7 @@ use tlm_rs::render::draw_pixels;
 
 fn main() {
     let size: PixelBufferSize = PixelBufferSize {
-        size: UVec2::new(SIMULATION_WIDTH, SIMULATION_HEIGHT),
+        size: UVec2::new(SIMULATION_WIDTH as u32, SIMULATION_HEIGHT as u32),
         pixel_size: UVec2::new(PIXEL_SIZE, PIXEL_SIZE),
     };
 
