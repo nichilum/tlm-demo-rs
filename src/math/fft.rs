@@ -1,4 +1,4 @@
-use spectrum_analyzer::scaling::scale_to_zero_to_one;
+use spectrum_analyzer::scaling::{self, scale_to_zero_to_one};
 use spectrum_analyzer::windows::hann_window;
 use spectrum_analyzer::{samples_fft_to_spectrum, FrequencyLimit};
 
@@ -24,8 +24,9 @@ pub fn calc_mic_spectrum(
     let spectrum_hann_window = samples_fft_to_spectrum(
         &hann_window,
         (1. / delta_t) as u32,
-        FrequencyLimit::All,
-        Some(&scale_to_zero_to_one),
+        FrequencyLimit::Range(0., 20000.),
+        //Some(&scale_to_zero_to_one), //TODO: maybe make scaling absolute, to observe the amplitude
+        Some(&scaling::scale_20_times_log10),
     )
     .unwrap();
 

@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use rand::prelude::*;
 
 use crate::grid::plugin::ComponentIDs;
 use crate::math::constants::*;
@@ -54,7 +55,9 @@ impl Source {
         match self.source_type {
             SourceType::Sin => self.sin(time),
             SourceType::Gauss => self.periodic_gaussian(time, 4., 0., 0.45),
-            SourceType::WhiteNoise => rand::random::<f32>() * self.amplitude,
+            SourceType::WhiteNoise => {
+                thread_rng().sample::<f32, _>(rand_distr::StandardNormal) * self.amplitude
+            }
         }
     }
 
