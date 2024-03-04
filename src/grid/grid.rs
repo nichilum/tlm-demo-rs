@@ -14,6 +14,7 @@ pub struct Grid {
     pub cells: Vec<f32>,
     /// Delta s in seconds
     pub delta_t: f32,
+    pub cell_coef: Vec<Vec<(f32, u8)>>,
 }
 
 impl Default for Grid {
@@ -25,6 +26,10 @@ impl Default for Grid {
                     as usize
             ],
             delta_t: 0.001 / PROPAGATION_SPEED,
+            cell_coef: vec![
+                vec![(0.5, 0b11111111); (SIMULATION_HEIGHT + 2 * E_AL) as usize];
+                (SIMULATION_WIDTH + 2 * E_AL) as usize
+            ],
         }
     }
 }
@@ -61,15 +66,45 @@ impl Grid {
     }
 
     pub fn calc(&mut self, e_al: u32) {
-        for x in e_al..(SIMULATION_WIDTH + e_al) {
-            for y in e_al..(SIMULATION_HEIGHT + e_al) {
-                self.calc_cell(
-                    coords_to_index(x, y, 0, e_al),
-                    self.cells[coords_to_index(x, y + 1, 2, e_al)],
-                    self.cells[coords_to_index(x - 1, y, 3, e_al)],
-                    self.cells[coords_to_index(x, y - 1, 0, e_al)],
-                    self.cells[coords_to_index(x + 1, y, 1, e_al)],
-                );
+        for x in 1..(SIMULATION_WIDTH + 2 * e_al - 1) {
+            for y in 1..(SIMULATION_HEIGHT + 2 * e_al - 1) {
+                let coord_one_d = coords_to_index(x, y, 0, e_al);
+                let bottom_top = self.cells[coords_to_index(x, y + 1, 2, e_al)];
+                let left_right = self.cells[coords_to_index(x - 1, y, 3, e_al)];
+                let top_bottom = self.cells[coords_to_index(x, y - 1, 0, e_al)];
+                let right_left = self.cells[coords_to_index(x + 1, y, 1, e_al)];
+
+                let factor = self.cell_coef[x as usize][y as usize].0;
+                let flags = self.cell_coef[x as usize][y as usize].1;
+                let flag_one = (flags >> 3 & 1) as f32;
+                let flag_two = (flags >> 2 & 1) as f32;
+                let flag_three = (flags >> 1 & 1) as f32;
+                let flag_four = (flags & 1) as f32;
+
+                self.cells[coord_one_d + 4] = (flags >> 7 & 1) as f32
+                    * factor
+                    * (flag_one * -bottom_top
+                        + flag_two * left_right
+                        + flag_three * top_bottom
+                        + flag_four * right_left);
+                self.cells[coord_one_d + 5] = (flags >> 6 & 1) as f32
+                    * factor
+                    * (flag_one * -left_right
+                        + flag_two * top_bottom
+                        + flag_three * right_left
+                        + flag_four * bottom_top);
+                self.cells[coord_one_d + 6] = (flags >> 5 & 1) as f32
+                    * factor
+                    * (flag_one * -top_bottom
+                        + flag_two * right_left
+                        + flag_three * bottom_top
+                        + flag_four * left_right);
+                self.cells[coord_one_d + 7] = (flags >> 4 & 1) as f32
+                    * factor
+                    * (flag_one * -right_left
+                        + flag_two * bottom_top
+                        + flag_three * left_right
+                        + flag_four * top_bottom);
             }
         }
     }
