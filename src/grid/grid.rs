@@ -14,7 +14,8 @@ pub struct Grid {
     pub cells: Vec<f32>,
     /// Delta s in seconds
     pub delta_t: f32,
-    pub cell_coef: Vec<Vec<(f32, u8)>>,
+    pub cell_coef: Vec<Vec<f32>>,
+    pub cell_flags: Vec<Vec<u8>>,
 }
 
 impl Default for Grid {
@@ -27,7 +28,11 @@ impl Default for Grid {
             ],
             delta_t: 0.001 / PROPAGATION_SPEED,
             cell_coef: vec![
-                vec![(0.5, 0b11111111); (SIMULATION_HEIGHT + 2 * E_AL) as usize];
+                vec![0.5; (SIMULATION_HEIGHT + 2 * E_AL) as usize];
+                (SIMULATION_WIDTH + 2 * E_AL) as usize
+            ],
+            cell_flags: vec![
+                vec![0b11111111; (SIMULATION_HEIGHT + 2 * E_AL) as usize];
                 (SIMULATION_WIDTH + 2 * E_AL) as usize
             ],
         }
@@ -74,8 +79,11 @@ impl Grid {
                 let top_bottom = self.cells[coords_to_index(x, y - 1, 0, e_al)];
                 let right_left = self.cells[coords_to_index(x + 1, y, 1, e_al)];
 
-                let factor = self.cell_coef[x as usize][y as usize].0;
-                let flags = self.cell_coef[x as usize][y as usize].1;
+                let factor = self.cell_coef[x as usize][y as usize];
+                // this makes it slow
+                // maybe just one array with flags in second f32??
+                let flags = self.cell_flags[x as usize][y as usize];
+
                 let flag_one = (flags >> 3 & 1) as f32;
                 let flag_two = (flags >> 2 & 1) as f32;
                 let flag_three = (flags >> 1 & 1) as f32;
