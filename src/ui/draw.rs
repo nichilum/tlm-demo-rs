@@ -558,12 +558,6 @@ pub fn draw_egui(
                                     "Circle",
                                 );
                             });
-                        if ui_state.wall_type == WallType::Circle {
-                            ui.add(
-                                egui::Slider::new(&mut ui_state.wall_radius, 1..=100)
-                                    .text("Brush Radius"),
-                            );
-                        }
                         ui.add(
                             egui::Slider::new(&mut ui_state.wall_reflection_factor, 0.0..=1.0)
                                 .text("Wall Reflection Factor"),

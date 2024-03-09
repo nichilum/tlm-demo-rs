@@ -29,10 +29,10 @@ pub struct WallRect {
 }
 
 impl WallRect {
-    pub fn new(min_x: u32, min_y: u32, max_x: u32, max_y: u32) -> Self {
+    pub fn new(x_min: u32, y_min: u32, x_max: u32, y_max: u32) -> Self {
         WallRect {
-            min: WallPos2 { x: min_x, y: min_y },
-            max: WallPos2 { x: max_x, y: max_y },
+            min: WallPos2 { x: x_min, y: y_min },
+            max: WallPos2 { x: x_max, y: y_max },
         }
     }
     pub fn center(&self) -> WallPos2 {
@@ -66,26 +66,34 @@ pub struct Wall {
     pub rect: WallRect,
     pub draw_rect: WallRect,
     pub calc_rect: WallRect,
-    pub center: WallPos2,
     pub reflection_factor: f32,
     pub id: usize,
+    // only for wall type circle
+    pub center: WallPos2,
+    pub radius: u32,
 }
 
 impl Wall {
     pub fn new(
         wall_type: WallType,
         hollow: bool,
-        rect: WallRect,
+        x_min: u32,
+        y_min: u32,
+        x_max: u32,
+        y_max: u32,
+        radius: u32,
         reflection_factor: f32,
         id: usize,
     ) -> Self {
+        let init_rect = WallRect::new(x_min, y_min, x_max, y_max);
         Self {
             wall_type,
             hollow,
-            rect,
-            draw_rect: rect,
-            calc_rect: rect,
-            center: rect.center(),
+            rect: init_rect,
+            draw_rect: init_rect,
+            calc_rect: init_rect,
+            center: init_rect.center(),
+            radius,
             reflection_factor,
             id,
         }
@@ -193,5 +201,11 @@ impl Wall {
         self.calc_rect.min.y = self.draw_rect.min.y + e_al;
         self.calc_rect.max.x = self.draw_rect.max.x + e_al;
         self.calc_rect.max.y = self.draw_rect.max.y + e_al;
+    }
+
+    pub fn set_radius(&mut self, radius: u32) {
+        let new_top = self.center.y as i32 - radius as i32 + 1;
+        if true {}
+        self.radius = radius;
     }
 }

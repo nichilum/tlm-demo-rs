@@ -51,7 +51,6 @@ pub struct UiState {
     pub current_tool: ToolType,
     pub wall_reflection_factor: f32,
     pub wall_type: WallType,
-    pub wall_radius: u32,
     pub wall_hollowed: bool,
     pub tools_enabled: bool,
 }
@@ -74,8 +73,7 @@ impl Default for UiState {
             current_tool: ToolType::MoveSource,
             wall_reflection_factor: 1.,
             wall_type: WallType::Rectangle,
-            wall_radius: 10,
-            wall_hollowed: true,
+            wall_hollowed: false,
             tools_enabled: true,
         }
     }

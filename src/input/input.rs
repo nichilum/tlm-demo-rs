@@ -79,10 +79,11 @@ pub fn button_input(
                                 Wall::new(
                                     WallType::Rectangle,
                                     ui_state.wall_hollowed,
-                                    WallRect {
-                                        min: WallPos2 { x, y },
-                                        max: WallPos2 { x, y },
-                                    },
+                                    x,
+                                    y,
+                                    x,
+                                    y,
+                                    0,
                                     ui_state.wall_reflection_factor,
                                     component_ids.get_current_wall_id(),
                                 ),
@@ -101,10 +102,11 @@ pub fn button_input(
                                 Wall::new(
                                     WallType::Circle,
                                     ui_state.wall_hollowed,
-                                    WallRect {
-                                        min: WallPos2 { x, y },
-                                        max: WallPos2 { x, y },
-                                    },
+                                    x,
+                                    y,
+                                    x,
+                                    y,
+                                    0,
                                     ui_state.wall_reflection_factor,
                                     component_ids.get_current_wall_id(),
                                 ),
@@ -227,7 +229,12 @@ pub fn button_input(
                                     wall.rect.max.y = y;
                                     wall.update_calc_rect(ui_state.e_al);
                                 }
-                                WallResize::Radius => todo!(),
+                                WallResize::Radius => {
+                                    // wall.set_radius(50);
+                                    wall.rect.max.x = x;
+                                    wall.rect.max.y = y;
+                                    wall.update_calc_rect(ui_state.e_al);
+                                }
                                 _ => {}
                             });
                     }
@@ -242,9 +249,18 @@ pub fn button_input(
                             x = (x as f32 / 10.).round() as u32 * 10;
                             y = (y as f32 / 10.).round() as u32 * 10;
                         }
-                        drag_walls.iter_mut().for_each(|(_, mut wall)| {
-                            wall.translate_center_to(x, y, ui_state.e_al);
-                        });
+                        drag_walls
+                            .iter_mut()
+                            .for_each(|(_, mut wall)| match wall.wall_type {
+                                WallType::Rectangle => {
+                                    wall.translate_center_to(x, y, ui_state.e_al);
+                                }
+                                WallType::Circle => {
+                                    wall.center.x = x;
+                                    wall.center.y = y;
+                                    wall.update_calc_rect(ui_state.e_al);
+                                }
+                            });
                     }
                 }
             }

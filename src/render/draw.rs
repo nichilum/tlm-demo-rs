@@ -190,7 +190,7 @@ pub fn draw_walls(
                     }
                 }
             }
-            WallType::Circle => todo!(),
+            WallType::Circle => {}
         }
     }
 
@@ -212,7 +212,20 @@ pub fn draw_walls(
                     }
                 }
             }
-            WallType::Circle => todo!(),
+            WallType::Circle => {
+                for x in wall.draw_rect.min.x..=wall.draw_rect.max.x {
+                    for y in wall.draw_rect.min.y..=wall.draw_rect.max.y {
+                        // no out of bounds check
+                        let index = x + y * SIMULATION_WIDTH;
+
+                        let r = raw_pixles[index as usize].r;
+                        let g = raw_pixles[index as usize].g;
+                        let b = raw_pixles[index as usize].b;
+
+                        raw_pixles[index as usize] = Pixel { r, g, b, a: 70 };
+                    }
+                }
+            }
         }
     }
 }

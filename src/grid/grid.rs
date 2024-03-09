@@ -238,7 +238,43 @@ impl Grid {
                                 .cur_right;
                     }
                 }
-                WallType::Circle => todo!(),
+                WallType::Circle => {
+                    let square_radius = (wall.calc_rect.width() / 2).pow(2);
+                    let center = wall.calc_rect.center();
+                    // reset inner values
+                    if !wall.hollow {
+                        for x in wall.calc_rect.min.x..=wall.calc_rect.max.x {
+                            for y in wall.calc_rect.min.y..=wall.calc_rect.max.y {
+                                if (center.x - x).pow(2) + (center.y - y).pow(2) <= square_radius {
+                                    self.cells[coords_to_index(x, y, e_al)].next_bottom = 0.;
+                                    self.cells[coords_to_index(x, y, e_al)].next_left = 0.;
+                                    self.cells[coords_to_index(x, y, e_al)].next_top = 0.;
+                                    self.cells[coords_to_index(x, y, e_al)].next_right = 0.;
+                                }
+                            }
+                        }
+                    }
+                    // for x in e_al..SIMULATION_WIDTH + e_al {
+                    //     for y in e_al..SIMULATION_WIDTH + e_al {
+                    for x in wall.calc_rect.min.x..=wall.calc_rect.max.x {
+                        for y in wall.calc_rect.min.y..=wall.calc_rect.max.y {
+                            if (center.x - x).pow(2) + (center.y - y).pow(2) <= square_radius
+                                && (center.x - x).pow(2) + (center.y - y).pow(2)
+                                // the 500 should be dynamic based on radius
+                                    > square_radius - 500
+                            {
+                                self.cells[coords_to_index(x, y, e_al)].next_bottom =
+                                    self.cells[coords_to_index(x, y + 1, e_al)].cur_top;
+                                self.cells[coords_to_index(x, y, e_al)].next_left =
+                                    self.cells[coords_to_index(x - 1, y, e_al)].cur_right;
+                                self.cells[coords_to_index(x, y, e_al)].next_top =
+                                    self.cells[coords_to_index(x, y - 1, e_al)].cur_bottom;
+                                self.cells[coords_to_index(x, y, e_al)].next_right =
+                                    self.cells[coords_to_index(x + 1, y, e_al)].cur_left;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
