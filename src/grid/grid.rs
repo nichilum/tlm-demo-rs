@@ -110,10 +110,15 @@ impl Grid {
         rect_walls: &Query<&RectWall>,
         circ_walls: &Query<&CircWall>,
         boundary_width: u32,
+        at_type: AttenuationType,
+        epsilon: f32,
+        power_order: u32,
     ) {
         self.wall_cache.par_iter_mut().for_each(|wall_cell| {
             wall_cell.is_wall = false;
         });
+
+        self.apply_boundaries(at_type, epsilon, boundary_width, power_order);
 
         self.wall_cache
             .par_iter_mut()
@@ -140,7 +145,13 @@ impl Grid {
                 }
 
                 for wall in circ_walls {
-                    if wall.contains(x, y) {
+                    if wall.contains(x, y)
+                        || wall.boundary_delete(
+                            x + boundary_width,
+                            y + boundary_width,
+                            boundary_width,
+                        )
+                    {
                         wall_cell.is_wall = true;
                         wall_cell.reflection_factor = 0.;
                     }
@@ -232,6 +243,12 @@ impl Grid {
                         next_cell.right = 0.5
                             * (bottom_cell.top + left_cell.right + top_cell.bottom
                                 - right_cell.left);
+                    } else {
+                        let attenuation_factor = self.wall_cache[index].reflection_factor;
+                        next_cell.bottom = attenuation_factor;
+                        next_cell.left = attenuation_factor;
+                        next_cell.top = attenuation_factor;
+                        next_cell.right = attenuation_factor;
                     }
                 }
             });
@@ -303,101 +320,29 @@ impl Grid {
             for x in r..(SIMULATION_WIDTH + 2 * boundary_width - r) {
                 let y = SIMULATION_HEIGHT + 2 * boundary_width - r - 1;
                 let current_cell_index = coords_to_index(x, y, boundary_width);
-                let bottom_cell = self.cur_cells[coords_to_index(x, y + 1, boundary_width)];
-                let left_cell = self.cur_cells[coords_to_index(x - 1, y, boundary_width)];
-                let top_cell = self.cur_cells[coords_to_index(x, y - 1, boundary_width)];
-                let right_cell = self.cur_cells[coords_to_index(x + 1, y, boundary_width)];
 
-                self.next_cells[current_cell_index].bottom = 0.5
-                    * (-bottom_cell.top
-                        + left_cell.right
-                        + attenuation_factor * top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].left = 0.5
-                    * (bottom_cell.top - left_cell.right
-                        + attenuation_factor * top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].top = 0.5
-                    * (bottom_cell.top + left_cell.right - attenuation_factor * top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].right = 0.5
-                    * (bottom_cell.top + left_cell.right + attenuation_factor * top_cell.bottom
-                        - right_cell.left);
+                self.wall_cache[current_cell_index].reflection_factor = attenuation_factor;
             }
             // left
             for y in r..(SIMULATION_HEIGHT + 2 * boundary_width - r) {
                 let x = r;
                 let current_cell_index = coords_to_index(x, y, boundary_width);
-                let bottom_cell = self.cur_cells[coords_to_index(x, y + 1, boundary_width)];
-                let left_cell = self.cur_cells[coords_to_index(x - 1, y, boundary_width)];
-                let top_cell = self.cur_cells[coords_to_index(x, y - 1, boundary_width)];
-                let right_cell = self.cur_cells[coords_to_index(x + 1, y, boundary_width)];
 
-                self.next_cells[current_cell_index].bottom = 0.5
-                    * (-bottom_cell.top
-                        + left_cell.right
-                        + top_cell.bottom
-                        + attenuation_factor * right_cell.left);
-                self.next_cells[current_cell_index].left = 0.5
-                    * (bottom_cell.top - left_cell.right
-                        + top_cell.bottom
-                        + attenuation_factor * right_cell.left);
-                self.next_cells[current_cell_index].top = 0.5
-                    * (bottom_cell.top + left_cell.right - top_cell.bottom
-                        + attenuation_factor * right_cell.left);
-                self.next_cells[current_cell_index].right = 0.5
-                    * (bottom_cell.top + left_cell.right + top_cell.bottom
-                        - attenuation_factor * right_cell.left);
+                self.wall_cache[current_cell_index].reflection_factor = attenuation_factor;
             }
             // top
             for x in r..(SIMULATION_WIDTH + 2 * boundary_width - r) {
                 let y = r;
                 let current_cell_index = coords_to_index(x, y, boundary_width);
-                let bottom_cell = self.cur_cells[coords_to_index(x, y + 1, boundary_width)];
-                let left_cell = self.cur_cells[coords_to_index(x - 1, y, boundary_width)];
-                let top_cell = self.cur_cells[coords_to_index(x, y - 1, boundary_width)];
-                let right_cell = self.cur_cells[coords_to_index(x + 1, y, boundary_width)];
 
-                self.next_cells[current_cell_index].bottom = 0.5
-                    * (attenuation_factor * -bottom_cell.top
-                        + left_cell.right
-                        + top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].left = 0.5
-                    * (attenuation_factor * bottom_cell.top - left_cell.right
-                        + top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].top = 0.5
-                    * (attenuation_factor * bottom_cell.top + left_cell.right - top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].right = 0.5
-                    * (attenuation_factor * bottom_cell.top + left_cell.right + top_cell.bottom
-                        - right_cell.left);
+                self.wall_cache[current_cell_index].reflection_factor = attenuation_factor;
             }
             // right
             for y in r..(SIMULATION_HEIGHT + 2 * boundary_width - r) {
                 let x = SIMULATION_WIDTH + 2 * boundary_width - r - 1;
                 let current_cell_index = coords_to_index(x, y, boundary_width);
-                let bottom_cell = self.cur_cells[coords_to_index(x, y + 1, boundary_width)];
-                let left_cell = self.cur_cells[coords_to_index(x - 1, y, boundary_width)];
-                let top_cell = self.cur_cells[coords_to_index(x, y - 1, boundary_width)];
-                let right_cell = self.cur_cells[coords_to_index(x + 1, y, boundary_width)];
 
-                self.next_cells[current_cell_index].bottom = 0.5
-                    * (-bottom_cell.top
-                        + attenuation_factor * left_cell.right
-                        + top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].left = 0.5
-                    * (bottom_cell.top - attenuation_factor * left_cell.right
-                        + top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].top = 0.5
-                    * (bottom_cell.top + attenuation_factor * left_cell.right - top_cell.bottom
-                        + right_cell.left);
-                self.next_cells[current_cell_index].right = 0.5
-                    * (bottom_cell.top + attenuation_factor * left_cell.right + top_cell.bottom
-                        - right_cell.left);
+                self.wall_cache[current_cell_index].reflection_factor = attenuation_factor;
             }
         }
     }

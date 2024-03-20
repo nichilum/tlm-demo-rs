@@ -25,7 +25,14 @@ pub fn update_wall_event(
     circ_walls: Query<&CircWall>,
 ) {
     for _ in wall_update_ev.read() {
-        grid.update_walls(&rect_walls, &circ_walls, ui_state.boundary_width);
+        grid.update_walls(
+            &rect_walls,
+            &circ_walls,
+            ui_state.boundary_width,
+            ui_state.at_type,
+            ui_state.epsilon,
+            ui_state.power_order,
+        );
     }
 }
 

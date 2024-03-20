@@ -541,7 +541,10 @@ impl Wall for CircWall {
     }
 
     fn boundary_delete(&self, x: u32, y: u32, boundary_width: u32) -> bool {
-        todo!()
+        // if x < boundary_width {
+
+        // }
+        false
     }
 }
 
