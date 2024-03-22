@@ -117,15 +117,10 @@ impl Grid {
         rect_walls: &Query<&RectWall>,
         circ_walls: &Query<&CircWall>,
         boundary_width: u32,
-        at_type: AttenuationType,
-        epsilon: f32,
-        power_order: u32,
     ) {
         self.wall_cache.par_iter_mut().for_each(|wall_cell| {
             wall_cell.is_wall = false;
         });
-
-        self.apply_boundaries(at_type, epsilon, boundary_width, power_order);
 
         self.wall_cache
             .par_iter_mut()
@@ -391,27 +386,14 @@ impl Grid {
         }
     }
 
-    pub fn apply_boundaries(
-        &mut self,
-        at_type: AttenuationType,
-        epsilon: f32,
-        boundary_width: u32,
-        power_order: u32,
-    ) {
-        let b = (boundary_width * boundary_width) as f32 / epsilon.ln();
+    pub fn apply_boundaries(&mut self, boundary_width: u32, power_order: u32) {
         // going in 'rings' from outer to inner
         // every ring shares an attenuation factor
         for r in 1..boundary_width {
             // there was a '?' in front of ui_state, that's not needed right?
             // also distance could be just r -> need to redo att_fac calcs
-            let attenuation_factor = Grid::attenuation_factor(
-                at_type,
-                epsilon,
-                boundary_width,
-                power_order,
-                boundary_width - r,
-                b,
-            );
+            let attenuation_factor =
+                Grid::attenuation_factor(boundary_width, power_order, boundary_width - r);
 
             // bottom
             for x in r..(SIMULATION_WIDTH + 2 * boundary_width - r) {
